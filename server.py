@@ -76,19 +76,23 @@ while True:
     # Get the output
     output_data = interpreter.get_tensor(output_details[0]['index'])
 
-    # Assuming the model outputs probabilities for classes
-    # Modify this part based on your model's output structure
-    predicted_class = np.argmax(output_data, axis=1)[0]
-    confidence = output_data[0][predicted_class]
+    # Check if output is int8, cast to float32 before applying softmax
+    if output_details[0]['dtype'] == np.int8:
+        output_data = output_data.astype(np.float32)
+
+    # Apply softmax to convert logits to probabilities (ensuring values between 0.00 and 1.00)
+    confidence_scores = tf.nn.softmax(output_data[0]).numpy()  # .numpy() converts to NumPy array
 
     # Define class labels (modify as per your model)
     class_labels = ['Plastic', 'Paper', 'Gemstone']
-    label = class_labels[predicted_class]
 
-    # Display the label and confidence on the frame
-    cv2.putText(frame, f"{label}: {confidence*100:.2f}%", 
-                (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
-                1, (0, 255, 0), 2, cv2.LINE_AA)
+    # Display each label with its corresponding confidence as a float (not percentage)
+    for i, label in enumerate(class_labels):
+        confidence = confidence_scores[i]
+        # Display label and confidence (0.00 to 1.00) on the frame
+        cv2.putText(frame, f"{label}: {confidence:.2f}", 
+                    (10, 30 + i*40), cv2.FONT_HERSHEY_SIMPLEX, 
+                    1, (0, 255, 0), 2, cv2.LINE_AA)
 
     # Show the frame
     cv2.imshow('Plastic Recognition', frame)
