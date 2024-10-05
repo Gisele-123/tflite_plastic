@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import tflite_runtime.interpreter as tflite  # Import tflite-runtime
+import os
 
 # Path to your TFLite model
 MODEL_PATH = 'model.tflite'
@@ -31,6 +32,13 @@ cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     print("Error: Could not open video stream.")
     exit()
+
+# Check if DISPLAY environment variable is set (which indicates a GUI is available)
+if os.environ.get('DISPLAY', '') == '':
+    print('No display found. Running in headless mode.')
+    show_images = False
+else:
+    show_images = True
 
 while True:
     ret, frame = cap.read()
@@ -76,9 +84,11 @@ while True:
     # Get the output
     output_data = interpreter.get_tensor(output_details[0]['index'])
 
-    # Check if output is int8, cast to float32 before applying softmax
-    if output_details[0]['dtype'] == np.int8:
-        output_data = output_data.astype(np.float32)
+    # Convert output data to float32 to avoid overflow
+    output_data = output_data.astype(np.float32)
+
+    # Clip the output data to avoid overflow
+    output_data = np.clip(output_data, -100, 100)
 
     # Apply softmax to convert logits to probabilities (ensuring values between 0.00 and 1.00)
     confidence_scores = np.exp(output_data[0]) / np.sum(np.exp(output_data[0]))
@@ -91,11 +101,12 @@ while True:
         confidence = confidence_scores[i]
         # Display label and confidence (0.00 to 1.00) on the frame
         cv2.putText(frame, f"{label}: {confidence:.2f}", 
-                    (10, 30 + i*40), cv2.FONT_HERSHEY_SIMPLEX, 
+                    (10, 30 + i * 40), cv2.FONT_HERSHEY_SIMPLEX, 
                     1, (0, 255, 0), 2, cv2.LINE_AA)
 
-    # Show the frame
-    cv2.imshow('Plastic Recognition', frame)
+    # Show the frame if display is available
+    if show_images:
+        cv2.imshow('Plastic Recognition', frame)
 
     # Exit on pressing 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
