@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 
 # Path to your TFLite model
-MODEL_PATH = 'model.tflite'
+MODEL_PATH = 'model_unquant.tflite'
 
 # Initialize the TFLite interpreter
 interpreter = tf.lite.Interpreter(model_path=MODEL_PATH)
@@ -84,7 +84,7 @@ while True:
     confidence_scores = tf.nn.softmax(output_data[0]).numpy()  # .numpy() converts to NumPy array
 
     # Define class labels (modify as per your model)
-    class_labels = ['Plastic', 'Paper', 'Gemstone']
+    class_labels = ['Plasti', 'Non-plastic']
 
     # Display each label with its corresponding confidence as a float (not percentage)
     for i, label in enumerate(class_labels):
